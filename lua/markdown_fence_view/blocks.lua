@@ -25,6 +25,7 @@ function M.gather(buf, lang)
   local out = {}
   for _, match in query:iter_matches(root, buf, 0, -1, { all = true }) do
     local info_nodes = match[1]
+    local block_nodes = match[4]
     if info_nodes then
       local info_text = vim.treesitter.get_node_text(info_nodes[1], buf):gsub("%s+$", "")
       local lang_word = info_text:match("^(%S+)") or ""
@@ -34,7 +35,12 @@ function M.gather(buf, lang)
         local body = body_nodes and vim.treesitter.get_node_text(body_nodes[1], buf) or ""
         local close_node = close_nodes and close_nodes[1] or nil
         local close_row = close_node and select(1, close_node:end_()) or 0
-        table.insert(out, { info = info_text, body = body, close_row = close_row })
+        local block_node = block_nodes and block_nodes[1] or nil
+        local start_row = block_node and select(1, block_node:start()) or close_row
+        table.insert(out, {
+          info = info_text, body = body,
+          start_row = start_row, close_row = close_row,
+        })
       end
     end
   end

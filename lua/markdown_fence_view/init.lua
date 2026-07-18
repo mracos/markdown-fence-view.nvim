@@ -75,6 +75,7 @@ function M.new(spec)
   local engines = engines_mod.build(spec.engines)
   local gate = spec.gate
   local cwd_fn = spec.cwd
+  local transform_output = spec.transform_output
   local ok_footer = spec.ok_footer or function(n_lines, elapsed_ms)
     return string.format("  // %d row(s), %dms", n_lines, elapsed_ms)
   end
@@ -134,6 +135,7 @@ function M.new(spec)
         else
           local run_opts = {
             cmd = engine, cwd = cwd, timeout_ms = config.timeout_ms,
+            transform_output = transform_output,
           }
           local cached = exec.get(name, b.body, run_opts)
           if cached and cached.status ~= "in_progress" then
@@ -189,6 +191,15 @@ function M.new(spec)
     set_buf_enabled = set_buf_enabled,
     invalidate = function() exec.invalidate(name) end,
     refresh_buffer = refresh_buffer,
+    -- Look up the cached result (including .metadata) for a block. Used
+    -- by write-back consumers to pair rendered rows with their source.
+    result_for_block = function(buf, block)
+      local buf_path = vim.api.nvim_buf_get_name(buf)
+      local cwd = resolve_cwd(buf_path)
+      return exec.get(name, block.body, { cwd = cwd })
+    end,
+    -- Enumerate the fence blocks matching this view in `buf`.
+    blocks_in_buf = function(buf) return blocks.gather(buf, name) end,
     _internals = {
       config = function() return config end,
       set_config = configure,

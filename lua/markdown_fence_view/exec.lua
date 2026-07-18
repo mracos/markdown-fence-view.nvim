@@ -22,7 +22,29 @@ function M.get(name, body, opts)
   return cache[key_for(name, body, cwd)]
 end
 
-local function classify(result, timeout_ms, elapsed_ms)
+--- Apply an optional per-view `transform_output` to an ok result.
+--- The transform receives the raw stdout string and returns
+--- `{ lines = string[], metadata = any[] }`. If it returns lines, they
+--- replace the naive newline-split. metadata (opaque to fv) is attached
+--- so later consumers can look up per-row info.
+--- Non-ok results and results without a transform pass through untouched.
+local function apply_transform(out, stdout, transform)
+  if not transform or not out.ok then return out end
+  local ok, transformed = pcall(transform, stdout)
+  if not ok then
+    vim.schedule(function()
+      vim.notify("markdown_fence_view: transform_output failed: " .. tostring(transformed),
+        vim.log.levels.ERROR)
+    end)
+    return out
+  end
+  if type(transformed) ~= "table" then return out end
+  if transformed.lines then out.lines = transformed.lines end
+  out.metadata = transformed.metadata
+  return out
+end
+
+local function classify(result, timeout_ms, elapsed_ms, transform)
   if result == nil then
     return { ok = false, lines = {}, stderr = "timed out after " .. timeout_ms .. "ms",
              elapsed_ms = elapsed_ms, reason = "timeout" }
@@ -44,15 +66,17 @@ local function classify(result, timeout_ms, elapsed_ms)
   else
     reason = "error"
   end
-  return {
+  local out = {
     ok = result.code == 0 and not timed_out,
     lines = lines,
+    stdout = stdout,
     stderr = result.stderr or "",
     elapsed_ms = elapsed_ms,
     reason = reason,
     code = result.code,
     signal = result.signal,
   }
+  return apply_transform(out, stdout, transform)
 end
 M._classify = classify
 
@@ -79,7 +103,7 @@ function M.run(name, body, opts)
   local result = sys:wait(timeout_ms)
   local elapsed_ms = (vim.uv.hrtime() - start) / 1e6
 
-  local out = classify(result, timeout_ms, elapsed_ms)
+  local out = classify(result, timeout_ms, elapsed_ms, opts.transform_output)
   cache[key] = out
   return out
 end
@@ -111,7 +135,7 @@ function M.run_async(name, body, opts, on_done)
 
   vim.system(cmd, { text = true, cwd = cwd, stdin = stdin, timeout = timeout_ms }, function(result)
     local elapsed_ms = (vim.uv.hrtime() - start) / 1e6
-    local out = classify(result, timeout_ms, elapsed_ms)
+    local out = classify(result, timeout_ms, elapsed_ms, opts.transform_output)
     cache[key] = out
     if on_done then vim.schedule(function() on_done(out) end) end
   end)

@@ -144,6 +144,79 @@ describe("m/markdown_fence_view/exec", function()
     end)
   end)
 
+  describe("transform_output", function()
+    it("replaces lines and attaches metadata on an ok result", function()
+      fake_result = {
+        code = 0,
+        stdout = [[{"raw":"- [ ] a","path":"a.md","lineno":10}
+{"raw":"- [ ] b","path":"b.md","lineno":22}
+]],
+        stderr = "",
+      }
+      _G.vim.json = { decode = function(s) return require("cjson").decode(s) end }
+      -- No cjson available under busted; hand-roll a tiny decoder for the test.
+      _G.vim.json.decode = function(s)
+        local raw = s:match('"raw":"([^"]+)"')
+        local path = s:match('"path":"([^"]+)"')
+        local lineno = tonumber(s:match('"lineno":(%d+)'))
+        if not raw then error("bad json: " .. s) end
+        return { raw = raw, path = path, lineno = lineno }
+      end
+      local transform = function(stdout)
+        local lines, meta = {}, {}
+        for jline in stdout:gmatch("[^\n]+") do
+          local obj = _G.vim.json.decode(jline)
+          table.insert(lines, obj.raw)
+          table.insert(meta, { path = obj.path, lineno = obj.lineno })
+        end
+        return { lines = lines, metadata = meta }
+      end
+      local r = exec.run("v", "body", { cmd = bash, transform_output = transform })
+      assert.same({ "- [ ] a", "- [ ] b" }, r.lines)
+      assert.same({ { path = "a.md", lineno = 10 }, { path = "b.md", lineno = 22 } }, r.metadata)
+      assert.are.equal("ok", r.reason)
+    end)
+
+    it("does not run transform on a non-ok result", function()
+      fake_result = { code = 1, stdout = "", stderr = "boom" }
+      local called = false
+      exec.run("v", "body", {
+        cmd = bash, no_cache = true,
+        transform_output = function() called = true; return { lines = {}, metadata = {} } end,
+      })
+      assert.is_false(called)
+    end)
+
+    it("swallows a transform error and keeps the original lines", function()
+      fake_result = { code = 0, stdout = "hello\nworld\n", stderr = "" }
+      _G.vim.schedule = function(fn) fn() end
+      _G.vim.log = { levels = { ERROR = 0 } }
+      local notified
+      _G.vim.notify = function(msg) notified = msg end
+      local r = exec.run("v", "body", {
+        cmd = bash, no_cache = true,
+        transform_output = function() error("boom") end,
+      })
+      assert.same({ "hello", "world" }, r.lines)
+      assert.is_nil(r.metadata)
+      assert.matches("transform_output failed", notified or "")
+    end)
+
+    it("caches the transformed result", function()
+      fake_result = { code = 0, stdout = "raw", stderr = "" }
+      local calls = 0
+      local transform = function(stdout)
+        calls = calls + 1
+        return { lines = { "TRANSFORMED:" .. stdout }, metadata = { { i = calls } } }
+      end
+      exec.run("v", "same", { cmd = bash, transform_output = transform })
+      local r2 = exec.run("v", "same", { cmd = bash, transform_output = transform })
+      assert.are.equal(1, calls, "transform runs only on cache miss")
+      assert.same({ "TRANSFORMED:raw" }, r2.lines)
+      assert.same({ { i = 1 } }, r2.metadata)
+    end)
+  end)
+
   describe("invalidate", function()
     it("with no name drops every entry", function()
       exec.run("v", "b", { cmd = bash })

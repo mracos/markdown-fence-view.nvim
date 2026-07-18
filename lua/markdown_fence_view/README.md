@@ -88,6 +88,20 @@ require("render-markdown").setup({
 | `fv.write_invalidate.checkbox_lines(k)` | Autocmd factory: drop cache when saved `.md` under `config[k]` roots contains `- [` lines. |
 | `fv.exec.invalidate(name?)`   | Manually invalidate cache (per-view or global). |
 
+### Per-view helpers (on the view instance)
+
+| Method                             | Purpose |
+|------------------------------------|---------|
+| `view.handler()`                   | Handler table for `render-markdown.custom_handlers`. |
+| `view.parse(ctx)`                  | Handler parse function (also accessible via `handler()`). |
+| `view.configure(opts)`             | Merge into the view's config table at runtime. |
+| `view.setup(opts)`                 | One-shot setup — apply opts, register commands + autocmds. |
+| `view.set_buf_enabled(buf, bool)`  | Skip rendering in a specific buffer. |
+| `view.invalidate()`                | Drop this view's cache entries. |
+| `view.refresh_buffer(buf)`         | Trigger a render-markdown redraw for a buffer. |
+| `view.result_for_block(buf, blk)`  | Return the cached result (with `.metadata`) for a fence block. |
+| `view.blocks_in_buf(buf)`          | Enumerate all fence blocks in `buf` matching this view. |
+
 ## Spec reference
 
 Fields on the spec table passed to `fv.setup({ views = { spec, ... } })`. Only `name` is required.
@@ -104,6 +118,7 @@ Fields on the spec table passed to `fv.setup({ views = { spec, ... } })`. Only `
 | `extra_config`     | `table`                                 | Merged into the view's config table (accessible from `gate` / `cwd`). Ex: `{ allow_paths = {} }`. |
 | `commands`         | `string`                                | Prefix for user commands. `"MarkdownQuery"` creates `:MarkdownQueryEnable/Disable/Refresh`. |
 | `write_invalidate` | `{ patterns, require }`                 | Register `BufWritePost` cache invalidation. `patterns(config) -> string[]` returns the autocmd patterns; `require` is a lua-pattern that the saved buffer must contain for the cache to be dropped. |
+| `transform_output` | `function(stdout) -> { lines, metadata }` | Called on any `ok` result before caching. Returns display `lines` (replace naive newline-split) and per-row `metadata` (opaque to fv). Metadata rides along in the cache entry so downstream write-back flows can look up `path`/`lineno`/etc by row. A pcall failure falls back to naive lines + `vim.notify`. |
 
 ### Reason lifecycle
 
@@ -119,6 +134,26 @@ A `result.reason` is one of `ok`, `empty`, `running`, `timeout`, `error`, or any
 - In-progress marker prevents double-spawn if `parse` is called re-entrantly before the first spawn completes.
 - Timeouts are cached like any other result. Retry paths: `:<Prefix>Refresh` clears entries for that view; saving a file whose contents match `write_invalidate.require` also clears them.
 
+## Write-back via scratch buffer
+
+Views whose `transform_output` returns metadata with `{path, lineno, raw}` per row can be edited in place via `scratch.lua`. Trigger the scratch from the parent buffer (e.g. `<localleader>tt` on a query fence) and:
+
+```lua
+local scratch_mod = require("m.markdown_fence_view.scratch")
+local block = scratch_mod.block_under_cursor(view, buf)
+scratch_mod.open({ view = view, buf = buf, block = block })
+```
+
+`scratch.open` creates a floating buffer with `buftype = "acwrite"` and `filetype = "markdown"` (so `<C-Space>` and other markdown mappings work unchanged), populates it with the source-form `raw` lines from metadata, and places identity extmarks. On `:w`:
+
+- Each live extmark whose row text differs from its `original` → `replace` in source.
+- Each shadow entry with no live extmark → `drop` (rewrite the source checkbox as `[-]`).
+- Each row without an extmark (newly added) → v1 rejects the whole write.
+- >3 drops in a batch → confirm-once prompt.
+- Per-path mtime check before applying — refuses writes to paths that changed on disk since the scratch opened.
+
+After a successful write, the view's cache is invalidated and the parent buffer re-renders. Design details in [ADR editors-0003](../../../../../../docs/adrs/editors/0003-editors-nvim-query-view-writeback.md).
+
 ## Module layout
 
 ```
@@ -129,6 +164,7 @@ exec.lua              -- name-namespaced cache; get / run / run_async / invalida
 engines.lua           -- bash, stdin_pipe(cmd), build(spec) resolver
 gates.lua             -- path_allow_list(key), executable(bin)
 write_invalidate.lua  -- checkbox_lines(key)
+scratch.lua           -- floating scratch buffer + BufWriteCmd sync-back
 ```
 
 No side effects at require-time. All state (config, cache, autocmds) is per-view or in the shared exec cache; nothing global.
@@ -149,7 +185,9 @@ Alternative extraction target: rename to `render-markdown-fence-view.nvim` or fo
 
 ## Design rationale
 
-See [ADR editors-0002](../../../../../../docs/adrs/editors/0002-editors-nvim-markdown-fence-view.md) for the extraction decision. See [ADR editors-0001](../../../../../../docs/adrs/editors/0001-editors-nvim-markdown-query-view.md) for the original `markdown_query_view` design.
+- [ADR editors-0001](../../../../../../docs/adrs/editors/0001-editors-nvim-markdown-query-view.md) — the original `markdown_query_view`.
+- [ADR editors-0002](../../../../../../docs/adrs/editors/0002-editors-nvim-markdown-fence-view.md) — the extraction into this shared module.
+- [ADR editors-0003](../../../../../../docs/adrs/editors/0003-editors-nvim-query-view-writeback.md) — `transform_output`, the scratch buffer, and extmark row identity.
 
 ## Tests
 
