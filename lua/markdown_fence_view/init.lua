@@ -34,8 +34,6 @@ local function refresh_buffer(buf)
     local ok_api, api = pcall(require, "render-markdown.api")
     if ok_api and api.render then
       pcall(api.render, { buf = buf, event = "fence_view_async" })
-    else
-      pcall(vim.cmd, "RenderMarkdown refresh")
     end
   end)
 end
@@ -226,19 +224,19 @@ function M.new(spec)
         if args.bang then configure({ enabled = false })
         else set_buf_enabled(0, false) end
         exec.invalidate(name)
-        vim.cmd("RenderMarkdown refresh")
+        refresh_buffer(vim.api.nvim_get_current_buf())
       end, { bang = true, desc = "disable " .. name .. " (use ! for global)" })
 
       vim.api.nvim_create_user_command(commands_prefix .. "Enable", function(args)
         if args.bang then configure({ enabled = true })
         else set_buf_enabled(0, true) end
         exec.invalidate(name)
-        vim.cmd("RenderMarkdown refresh")
+        refresh_buffer(vim.api.nvim_get_current_buf())
       end, { bang = true, desc = "enable " .. name .. " (use ! for global)" })
 
       vim.api.nvim_create_user_command(commands_prefix .. "Refresh", function()
         exec.invalidate(name)
-        vim.cmd("RenderMarkdown refresh")
+        refresh_buffer(vim.api.nvim_get_current_buf())
       end, { desc = "invalidate " .. name .. " cache and re-render" })
     end
 

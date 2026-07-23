@@ -187,6 +187,22 @@ describe("m/markdown_fence_view (spec-driven handler)", function()
       assert.is_not_nil(created_commands["MdXRefresh"])
     end)
 
+    it("Refresh command redraws via render-markdown api (not :RenderMarkdown cmd)", function()
+      local cmd_calls, render_calls = {}, {}
+      _G.vim.cmd = function(s) table.insert(cmd_calls, s) end
+      _G.vim.api.nvim_get_current_buf = function() return 7 end
+      _G.vim.api.nvim_buf_is_valid = function(_) return true end
+      package.loaded["render-markdown.api"] = {
+        render = function(ctx) table.insert(render_calls, ctx) end,
+      }
+      fv.setup({ views = { { name = "x", commands = "MdX" } } })
+      created_commands["MdXRefresh"].fn({})
+      assert.same({}, cmd_calls)
+      assert.are.equal(1, #render_calls)
+      assert.are.equal(7, render_calls[1].buf)
+      package.loaded["render-markdown.api"] = nil
+    end)
+
     it("skips command creation when spec.commands is absent", function()
       fv.setup({ views = { { name = "x" } } })
       assert.same({}, created_commands)
