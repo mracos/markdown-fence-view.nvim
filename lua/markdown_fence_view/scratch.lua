@@ -193,8 +193,10 @@ function M.open(opts)
   })
 
   -- Buffer-local q for quick cancel without wiping the file (bufhidden = wipe
-  -- already handles cleanup).
+  -- already handles cleanup). Also bind <localleader>tt so the open/close
+  -- keybind is symmetrical (same trigger toggles the scratch off).
   vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = scratch, desc = "cancel" })
+  vim.keymap.set("n", "<localleader>tt", "<cmd>close<cr>", { buffer = scratch, desc = "cancel (toggle off)" })
 
   vim.api.nvim_create_autocmd("BufWriteCmd", {
     buffer = scratch,
