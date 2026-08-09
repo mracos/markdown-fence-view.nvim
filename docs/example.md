@@ -1,20 +1,24 @@
 # markdown_fence_view demo
 
 Open this in Neovim with the plugin wired up (see [integrating.md](integrating.md)).
-Each fence below runs its body and renders the output inline, under the closing fence.
+Each fence's first word picks a view; the body is executed and its output is
+rendered inline, right under the closing fence (nothing is written to the file).
 
-A `mermaid` fence (renders anywhere `mermaid-ascii` is on PATH):
+`mermaid` uses the `stdin_pipe` engine, the body is piped to `mermaid-ascii`.
+It renders on any path where that binary is installed:
 
 ```mermaid
 graph LR
   A[write fence] --> B[run body]
-  B --> C[render output inline]
+  B --> C[render inline]
+  C --> D[edit + save re-renders]
 ```
 
-A `query` fence (renders when the file is under an allowed root, e.g. `~/Notes`):
+`query` uses the `bash` engine, the body is run as a shell command. This view is
+path-gated, so it renders only under an allowed root (e.g. `~/Notes`):
 
 ```query
-echo "- [ ] ship the mirror"; echo "- [ ] screenshot the demo"
+echo "hello from the bash engine"; date -u +%Y-%m-%d
 ```
 
-Edit a body and save: the cache invalidates and the block re-renders.
+Edit a body and save to re-run it.

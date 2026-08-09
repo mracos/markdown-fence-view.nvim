@@ -208,6 +208,33 @@ describe("markdown_fence_view (spec-driven handler)", function()
       assert.same({}, created_commands)
     end)
 
+    it("registers one global command set when setup.commands is set", function()
+      fv.setup({
+        views = { { name = "a" }, { name = "b" } },
+        commands = "MarkdownFence",
+      })
+      assert.is_not_nil(created_commands["MarkdownFenceEnable"])
+      assert.is_not_nil(created_commands["MarkdownFenceDisable"])
+      assert.is_not_nil(created_commands["MarkdownFenceRefresh"])
+      -- no per-view commands were requested
+      assert.is_nil(created_commands["aRefresh"])
+    end)
+
+    it("global Refresh invalidates every view", function()
+      _G.vim.api.nvim_get_current_buf = function() return 3 end
+      _G.vim.api.nvim_buf_is_valid = function(_) return true end
+      fv.setup({
+        views = { { name = "a" }, { name = "b" } },
+        commands = "MarkdownFence",
+      })
+      -- exec is a shared singleton across views, so one patch covers both.
+      local cleared = {}
+      fv.get("a")._internals.exec.invalidate = function(n) cleared[n] = true end
+      created_commands["MarkdownFenceRefresh"].fn({})
+      assert.is_true(cleared["a"])
+      assert.is_true(cleared["b"])
+    end)
+
     it("registers BufWritePost autocmds when spec.write_invalidate is set", function()
       fv.setup({
         views = {

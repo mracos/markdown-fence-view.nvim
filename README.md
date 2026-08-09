@@ -25,16 +25,19 @@ It registers no side effects at load; you wire it into `render-markdown.nvim` yo
 You write a fenced block whose info-string first word names a configured view. The plugin runs the body and renders its output inline, right under the closing fence, as virtual text (nothing is written to the file):
 
 ````markdown
-```query
-notes todos query --status open
+```mermaid
+graph LR
+  A[write fence] --> B[run body] --> C[render inline]
 ```
 ````
 
 renders as:
 
-![markdown_fence_view rendering a query fence](docs/screenshot.png)
+![markdown_fence_view rendering a mermaid diagram and a query fence inline](docs/screenshot.png)
 
-`docs/example.md` is a small file you can open to try it (and screenshot). Full mechanics: [docs/how-it-works.md](docs/how-it-works.md).
+Two engines ship built in: `bash` (run the body as a shell command) and `stdin_pipe` (pipe the body to a fixed command's stdin, like `mermaid-ascii`). Register your own per view, see [docs/integrating.md](docs/integrating.md).
+
+`docs/example.md` is a small file you can open to try it (and screenshot), with one fence per engine. Full mechanics: [docs/how-it-works.md](docs/how-it-works.md).
 
 ## Requirements
 

@@ -271,6 +271,38 @@ function M.new(spec)
   return view
 end
 
+--- Register global commands acting on ALL registered views. Prefer these over
+--- per-view `spec.commands` when you just want one set of controls:
+---   <prefix>Refresh           invalidate every view's cache and re-render
+---   <prefix>Enable  (! global) enable every view (buffer-local, ! for global)
+---   <prefix>Disable (! global) disable every view
+function M.register_commands(prefix)
+  local function apply(fn)
+    for _, view in pairs(views) do fn(view) end
+    refresh_buffer(vim.api.nvim_get_current_buf())
+  end
+
+  vim.api.nvim_create_user_command(prefix .. "Disable", function(args)
+    apply(function(view)
+      if args.bang then view.configure({ enabled = false })
+      else view.set_buf_enabled(0, false) end
+      view.invalidate()
+    end)
+  end, { bang = true, desc = "disable all markdown fence views (! = global)" })
+
+  vim.api.nvim_create_user_command(prefix .. "Enable", function(args)
+    apply(function(view)
+      if args.bang then view.configure({ enabled = true })
+      else view.set_buf_enabled(0, true) end
+      view.invalidate()
+    end)
+  end, { bang = true, desc = "enable all markdown fence views (! = global)" })
+
+  vim.api.nvim_create_user_command(prefix .. "Refresh", function()
+    apply(function(view) view.invalidate() end)
+  end, { desc = "invalidate all markdown fence caches and re-render" })
+end
+
 --- Top-level entry point: register N views at once.
 ---
 ---   fv.setup({
@@ -278,10 +310,13 @@ end
 ---       { name = "query", ...spec + runtime opts... },
 ---       { name = "mermaid", ... },
 ---     },
+---     commands = "MarkdownFence",  -- optional: one global command set
 ---   })
 ---
 --- Each spec is passed to `M.new` and then `.setup()` is called on it with
---- the same table (so runtime opts like `allow_paths` land in config).
+--- the same table (so runtime opts like `allow_paths` land in config). When
+--- `opts.commands` is set, one global `<prefix>Enable/Disable/Refresh` set is
+--- registered across all views (instead of per-view `spec.commands`).
 function M.setup(opts)
   opts = opts or {}
   for _, spec in ipairs(opts.views or {}) do
@@ -289,6 +324,7 @@ function M.setup(opts)
     view.setup(spec)
     views[view.name] = view
   end
+  if opts.commands then M.register_commands(opts.commands) end
 end
 
 --- Return `{ [name] = handler_table }` for `render-markdown`'s `custom_handlers`.

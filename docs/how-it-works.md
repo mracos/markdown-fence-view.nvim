@@ -26,7 +26,7 @@ A `result.reason` is one of `ok`, `empty`, `running`, `timeout`, `error`, or any
 
 - Keys are namespaced by view name: `<name>\0<sha256(body)>\0<cwd>`. Different views can't collide.
 - In-progress marker prevents double-spawn if `parse` is called re-entrantly before the first spawn completes.
-- Timeouts are cached like any other result. Retry paths: `:<Prefix>Refresh` clears entries for that view; saving a file whose contents match `write_invalidate.require` also clears them.
+- Timeouts are cached like any other result. Retry paths: `:MarkdownFenceRefresh` (the global command set) clears every view's entries; saving a file whose contents match `write_invalidate.require` also clears them.
 
 ## Write-back via scratch buffer
 
