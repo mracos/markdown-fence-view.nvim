@@ -1,4 +1,4 @@
--- m.markdown_fence_view.write_invalidate
+-- markdown_fence_view.write_invalidate
 -- Reusable `write_invalidate` factories for `fv.new(spec)`.
 --
 -- A write_invalidate spec is `{ patterns = fn(config) -> string[], require = pattern }`.

@@ -1,4 +1,4 @@
--- m.markdown_fence_view.engines
+-- markdown_fence_view.engines
 -- Resolve an info-string suffix to a command builder.
 --
 -- Info-string shape: `<lang> [<engine-name>]`. Example fences:

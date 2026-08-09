@@ -1,4 +1,4 @@
--- m.markdown_fence_view
+-- markdown_fence_view
 -- Spec-driven render-markdown handler for fenced code blocks.
 --
 -- See README.md in this directory for full docs. In short: a consumer
@@ -13,15 +13,15 @@
 
 local M = {}
 
-local blocks = require("m.markdown_fence_view.blocks")
-local marks = require("m.markdown_fence_view.marks")
-local exec = require("m.markdown_fence_view.exec")
-local engines_mod = require("m.markdown_fence_view.engines")
+local blocks = require("markdown_fence_view.blocks")
+local marks = require("markdown_fence_view.marks")
+local exec = require("markdown_fence_view.exec")
+local engines_mod = require("markdown_fence_view.engines")
 
 M.exec = exec
 M.engines = engines_mod           -- exposes bash + stdin_pipe factories
-M.gates = require("m.markdown_fence_view.gates")
-M.write_invalidate = require("m.markdown_fence_view.write_invalidate")
+M.gates = require("markdown_fence_view.gates")
+M.write_invalidate = require("markdown_fence_view.write_invalidate")
 
 -- Registry of view instances built via M.setup({ views = ... }).
 local views = {}

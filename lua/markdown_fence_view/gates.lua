@@ -1,4 +1,4 @@
--- m.markdown_fence_view.gates
+-- markdown_fence_view.gates
 -- Reusable `gate` factories for `fv.new(spec)`.
 --
 -- A gate runs once per parse call and returns a reason string that maps to

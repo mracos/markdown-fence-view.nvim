@@ -1,9 +1,9 @@
-describe("m/markdown_fence_view/engines", function()
+describe("markdown_fence_view/engines", function()
   local engines
 
   before_each(function()
-    package.loaded["m.markdown_fence_view.engines"] = nil
-    engines = require("m.markdown_fence_view.engines")
+    package.loaded["markdown_fence_view.engines"] = nil
+    engines = require("markdown_fence_view.engines")
   end)
 
   local function spec()

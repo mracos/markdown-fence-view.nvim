@@ -1,4 +1,4 @@
-describe("m/markdown_fence_view/exec", function()
+describe("markdown_fence_view/exec", function()
   local exec
   local original_vim
   local fake_result
@@ -27,8 +27,8 @@ describe("m/markdown_fence_view/exec", function()
       end,
     }
 
-    package.loaded["m.markdown_fence_view.exec"] = nil
-    exec = require("m.markdown_fence_view.exec")
+    package.loaded["markdown_fence_view.exec"] = nil
+    exec = require("markdown_fence_view.exec")
     fake_result = { code = 0, stdout = "row1\nrow2\n", stderr = "" }
   end)
 

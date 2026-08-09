@@ -1,4 +1,4 @@
--- m.markdown_fence_view.scratch
+-- markdown_fence_view.scratch
 -- Open a floating scratch buffer over a fence block's rendered rows so the
 -- user can edit them and sync back to source files on :w.
 --

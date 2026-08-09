@@ -1,4 +1,4 @@
--- m.markdown_fence_view.exec
+-- markdown_fence_view.exec
 -- Shared command runner + cache used by every fence view.
 -- Cache keys are namespaced by view name so `notes todos query` and
 -- `notes todos mermaid` (unlikely, but possible) don't collide.

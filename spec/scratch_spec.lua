@@ -1,4 +1,4 @@
-describe("m/markdown_fence_view/scratch (diff_batch)", function()
+describe("markdown_fence_view/scratch (diff_batch)", function()
   local scratch
   local original_vim
   local scratch_lines
@@ -42,8 +42,8 @@ describe("m/markdown_fence_view/scratch (diff_batch)", function()
       log = { levels = { ERROR = 0, WARN = 1, INFO = 2 } },
     }
 
-    package.loaded["m.markdown_fence_view.scratch"] = nil
-    scratch = require("m.markdown_fence_view.scratch")
+    package.loaded["markdown_fence_view.scratch"] = nil
+    scratch = require("markdown_fence_view.scratch")
   end)
 
   after_each(function() _G.vim = original_vim end)

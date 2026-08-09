@@ -1,4 +1,4 @@
--- m.markdown_fence_view.marks
+-- markdown_fence_view.marks
 -- Emit extmarks with virt_lines anchored outside the fenced-code-block fold.
 --
 -- UFO closes fenced_code_block as its own inner fold on BufWinEnter.

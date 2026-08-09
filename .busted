@@ -1,0 +1,16 @@
+-- Standalone busted config for the extracted mirror (mracos/markdown-fence-view.nvim).
+-- Inside dotfiles the specs are also discovered by the repo-root .busted; this
+-- one is what the mirror's CI and a local `cd lib/nvim/markdown-fence-view && busted` use.
+return {
+  default = {
+    verbose = true,
+    pattern = "_spec",
+    ROOT = { "spec" },
+    helper = "spec/helper.lua",
+    lpath = table.concat({
+      "lua/?.lua",
+      "lua/?/init.lua",
+      "spec/?.lua",
+    }, ";"),
+  },
+}

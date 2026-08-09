@@ -1,4 +1,4 @@
--- m.markdown_fence_view.blocks
+-- markdown_fence_view.blocks
 -- Walk the markdown treesitter tree for fenced_code_block nodes whose
 -- first info-string word matches a given language.
 --

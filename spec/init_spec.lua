@@ -1,4 +1,4 @@
-describe("m/markdown_fence_view (spec-driven handler)", function()
+describe("markdown_fence_view (spec-driven handler)", function()
   local fv
   local original_vim
   local created_commands
@@ -39,14 +39,14 @@ describe("m/markdown_fence_view (spec-driven handler)", function()
       schedule = function(fn) fn() end,
     }
 
-    package.loaded["m.markdown_fence_view.blocks"] = nil
-    package.loaded["m.markdown_fence_view.marks"] = nil
-    package.loaded["m.markdown_fence_view.exec"] = nil
-    package.loaded["m.markdown_fence_view.engines"] = nil
-    package.loaded["m.markdown_fence_view.gates"] = nil
-    package.loaded["m.markdown_fence_view.write_invalidate"] = nil
-    package.loaded["m.markdown_fence_view"] = nil
-    fv = require("m.markdown_fence_view")
+    package.loaded["markdown_fence_view.blocks"] = nil
+    package.loaded["markdown_fence_view.marks"] = nil
+    package.loaded["markdown_fence_view.exec"] = nil
+    package.loaded["markdown_fence_view.engines"] = nil
+    package.loaded["markdown_fence_view.gates"] = nil
+    package.loaded["markdown_fence_view.write_invalidate"] = nil
+    package.loaded["markdown_fence_view"] = nil
+    fv = require("markdown_fence_view")
   end)
 
   after_each(function() _G.vim = original_vim end)
