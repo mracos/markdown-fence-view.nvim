@@ -1,0 +1,3 @@
+luarocks/
+*.log
+.DS_Store
