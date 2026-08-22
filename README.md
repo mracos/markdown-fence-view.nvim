@@ -1,8 +1,17 @@
 # markdown_fence_view
 
-Spec-driven [`render-markdown.nvim`](https://github.com/MeanderingProgrammer/render-markdown.nvim) handler for fenced code blocks. Configure N views (each matches a fence language and describes how to execute the body) in a single `setup()` call.
+Run fenced code blocks in a markdown buffer and render their output inline, as virtual text. Nothing is written to the file.
 
-Only depends on `render-markdown.nvim` at runtime, and only on the `markdown` treesitter parser at parse time.
+````markdown
+```mermaid
+graph LR
+  A[write fence] --> B[run body] --> C[render inline]
+```
+````
+
+![markdown_fence_view rendering a mermaid diagram and a query fence inline](docs/screenshot.png)
+
+It is a custom handler for [`render-markdown.nvim`](https://github.com/MeanderingProgrammer/render-markdown.nvim). You declare N *views* in one `setup()` call; each view matches a fence language and says how to execute the body.
 
 ## Install
 
@@ -18,37 +27,73 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
 }
 ```
 
-It registers no side effects at load; you wire it into `render-markdown.nvim` yourself, see [docs/integrating.md](docs/integrating.md). To hack on it locally, point lazy at a checkout with `dir = "/path/to/markdown-fence-view.nvim"`.
+Requires Neovim 0.10+ and the `markdown` treesitter parser. Nothing happens at load; you wire the handlers into render-markdown yourself.
 
-## What it does
+---
 
-You write a fenced block whose info-string first word names a configured view. The plugin runs the body and renders its output inline, right under the closing fence, as virtual text (nothing is written to the file):
+## Quick start
 
-````markdown
-```mermaid
-graph LR
-  A[write fence] --> B[run body] --> C[render inline]
+Two views: `run` executes the body as a shell command, `mermaid` pipes it to [`mermaid-ascii`](https://github.com/AlexanderGrooff/mermaid-ascii). Copy this in, open a markdown file under `~/notes`, write a fence.
+
+```lua
+local fv = require("markdown_fence_view")
+
+fv.setup({
+  views = {
+    {
+      name = "run",
+      engine = fv.engines.bash,
+      -- Only execute fences in files under these roots.
+      gate = fv.gates.path_allow_list("allow_paths"),
+      extra_config = { allow_paths = { vim.fn.expand("~/notes") } },
+      labels = { extra = { path = "skipped (path not allowed)" } },
+      timeout_ms = 5000,
+    },
+    {
+      name = "mermaid",
+      engine = fv.engines.stdin_pipe({ "mermaid-ascii", "--file", "-" }),
+      gate = fv.gates.executable("mermaid-ascii"),
+      labels = { extra = { missing = "mermaid-ascii not installed" } },
+      ok_footer = function(_n, ms) return ("  // rendered in %dms"):format(ms) end,
+    },
+  },
+  commands = "MarkdownFence",
+})
+
+require("render-markdown").setup({
+  custom_handlers = fv.handlers(),
+})
 ```
-````
 
-renders as:
+Now `` ```run `` and `` ```mermaid `` fences execute on render. Edit a body, save, it re-runs.
 
-![markdown_fence_view rendering a mermaid diagram and a query fence inline](docs/screenshot.png)
+> [!WARNING]
+> A matching fence runs its body as soon as the buffer renders, with no prompt. Markdown files arrive from repos, downloads and clones you did not write. Always ship a `gate`: `fv.gates.path_allow_list` restricts execution to roots you control, and `fv.gates.executable` keeps a view dark until its tool is installed.
 
-Two engines ship built in: `bash` (run the body as a shell command) and `stdin_pipe` (pipe the body to a fixed command's stdin, like `mermaid-ascii`). Register your own per view, see [docs/integrating.md](docs/integrating.md).
+`docs/example.md` has one fence per engine, open it to check the wiring.
 
-`docs/example.md` is a small file you can open to try it (and screenshot), with one fence per engine. Full mechanics: [docs/how-it-works.md](docs/how-it-works.md).
+### Commands
 
-## Requirements
+`commands = "MarkdownFence"` registers one set that acts on every view.
 
-- Neovim 0.10+ (`vim.system`, `vim.uv.hrtime`, `vim.treesitter.query.parse`)
-- [`render-markdown.nvim`](https://github.com/MeanderingProgrammer/render-markdown.nvim) — this module registers as a custom handler
-- `nvim-treesitter` with the `markdown` parser installed
+| Command | Effect |
+|---------|--------|
+| `:MarkdownFenceRefresh` | Drop all caches and re-render the buffer. |
+| `:MarkdownFenceDisable` | Stop rendering in this buffer (`!` = globally). |
+| `:MarkdownFenceEnable` | Resume (`!` = globally). |
 
-## Docs
+Results are cached on `view name + sha256(body) + cwd`, so a re-render costs nothing until the body changes.
 
-- [Integrating](docs/integrating.md) — configure views, wire the handlers, public API, spec reference.
-- [How it works](docs/how-it-works.md) — the render pipeline, reason lifecycle, cache invariants, write-back, internals.
+---
+
+## Beyond the quick start
+
+A view is a spec table, and an engine is just `function(body) -> cmd, stdin`, so wiring a new tool is usually three lines of config. Views can also set their own `cwd`, footer, cache invalidation on write, and `transform_output` for per-row metadata that feeds an editable scratch buffer.
+
+- [Integrating](docs/integrating.md): adding views, writing engines and gates, cache control, spec and API reference.
+- [How it works](docs/how-it-works.md): render pipeline, reason lifecycle, cache invariants, write-back, module layout.
+
+---
 
 ## Tests
 

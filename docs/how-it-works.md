@@ -55,7 +55,7 @@ init.lua              -- setup{views}, new(spec), handlers(), get(name)
 blocks.lua            -- gather(buf, lang) via markdown treesitter root
 marks.lua             -- append() with fold-safe close_row + 1 anchor
 exec.lua              -- name-namespaced cache; get / run / run_async / invalidate
-engines.lua           -- bash, stdin_pipe(cmd), build(spec) resolver
+engines.lua           -- bash, stdin_pipe(cmd), build(view_spec) resolver
 gates.lua             -- path_allow_list(key), executable(bin)
 write_invalidate.lua  -- checkbox_lines(key)
 scratch.lua           -- floating scratch buffer + BufWriteCmd sync-back

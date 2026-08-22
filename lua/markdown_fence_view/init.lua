@@ -70,7 +70,7 @@ function M.new(spec)
 
   local name = spec.name
   local labels = spec.labels or {}
-  local engines = engines_mod.build(spec.engines)
+  local engines = engines_mod.build(spec)
   local gate = spec.gate
   local cwd_fn = spec.cwd
   local transform_output = spec.transform_output
