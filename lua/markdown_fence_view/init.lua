@@ -21,6 +21,7 @@ local engines_mod = require("markdown_fence_view.engines")
 M.exec = exec
 M.engines = engines_mod           -- exposes bash + stdin_pipe factories
 M.gates = require("markdown_fence_view.gates")
+M.pager = require("markdown_fence_view.pager")
 M.write_invalidate = require("markdown_fence_view.write_invalidate")
 
 -- Registry of view instances built via M.setup({ views = ... }).
@@ -238,6 +239,11 @@ function M.new(spec)
         exec.invalidate(name)
         refresh_buffer(vim.api.nvim_get_current_buf())
       end, { desc = "invalidate " .. name .. " cache and re-render" })
+
+      vim.api.nvim_create_user_command(commands_prefix .. "Open", function(args)
+        require("markdown_fence_view.pager").open_at_cursor(
+          { view }, vim.api.nvim_get_current_buf(), args.bang and "tab" or "float")
+      end, { bang = true, desc = "open " .. name .. " output in a buffer (! = new tab)" })
     end
 
     local wi = spec.write_invalidate
@@ -276,6 +282,7 @@ end
 ---   <prefix>Refresh           invalidate every view's cache and re-render
 ---   <prefix>Enable  (! global) enable every view (buffer-local, ! for global)
 ---   <prefix>Disable (! global) disable every view
+---   <prefix>Open    (! new tab) open the cursor fence's output in a buffer
 function M.register_commands(prefix)
   local function apply(fn)
     for _, view in pairs(views) do fn(view) end
@@ -301,6 +308,13 @@ function M.register_commands(prefix)
   vim.api.nvim_create_user_command(prefix .. "Refresh", function()
     apply(function(view) view.invalidate() end)
   end, { desc = "invalidate all markdown fence caches and re-render" })
+
+  -- Virtual lines can't be scrolled; this puts the rendered output of the
+  -- fence under the cursor into a real buffer instead.
+  vim.api.nvim_create_user_command(prefix .. "Open", function(args)
+    require("markdown_fence_view.pager").open_at_cursor(
+      views, vim.api.nvim_get_current_buf(), args.bang and "tab" or "float")
+  end, { bang = true, desc = "open fence output in a scrollable buffer (! = new tab)" })
 end
 
 --- Top-level entry point: register N views at once.
@@ -336,5 +350,9 @@ end
 
 --- Look up a registered view by name (for tests, manual invalidation, etc.).
 function M.get(name) return views[name] end
+
+--- Every registered view, keyed by name. Pass to `pager.open_at_cursor` when
+--- a trigger should act on whichever view owns the fence under the cursor.
+function M.views() return views end
 
 return M

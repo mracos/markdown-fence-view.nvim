@@ -208,6 +208,13 @@ if block then scratch_mod.open({ view = view, buf = buf, block = block }) end
 
 Bind that from the parent buffer. Mechanics and safety rules (mtime checks, drop confirmation, rejected inserts) are in [how-it-works](how-it-works.md#write-back-via-scratch-buffer).
 
+Metadata is only needed for editing. To *read* output that overflows the window, `pager.lua` needs nothing from the view but its cache, and works for every view:
+
+```lua
+require("markdown_fence_view.pager").open_at_cursor(fv.views(), buf)         -- float
+require("markdown_fence_view.pager").open_at_cursor(fv.views(), buf, "tab")  -- new tab
+```
+
 A `transform_output` that errors falls back to naive lines and notifies, so a bad transform degrades instead of breaking the render.
 
 ---

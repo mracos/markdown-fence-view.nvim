@@ -81,8 +81,11 @@ Now `` ```run `` and `` ```mermaid `` fences execute on render. Edit a body, sav
 | `:MarkdownFenceRefresh` | Drop all caches and re-render the buffer. |
 | `:MarkdownFenceDisable` | Stop rendering in this buffer (`!` = globally). |
 | `:MarkdownFenceEnable` | Resume (`!` = globally). |
+| `:MarkdownFenceOpen` | Open the cursor fence's output in a scrollable buffer (`!` = new tab). |
 
 Results are cached on `view name + sha256(body) + cwd`, so a re-render costs nothing until the body changes.
+
+Output renders as virtual text, which the editor cannot scroll, search or yank. When a chart or result set runs past the edge of the window, `:MarkdownFenceOpen` copies it into a real buffer: a float sized to the content, `wrap` off so wide diagrams scroll a column at a time, `q` to close, `w` to toggle wrap. `:MarkdownFenceOpen!` uses a full tab page instead, for output too wide for a float.
 
 ---
 

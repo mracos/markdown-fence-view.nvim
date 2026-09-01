@@ -48,10 +48,22 @@ scratch_mod.open({ view = view, buf = buf, block = block })
 
 After a successful write, the view's cache is invalidated and the parent buffer re-renders. Design details in [ADR editors-0003](adrs/0003-editors-nvim-query-view-writeback.md).
 
+## Paging output out of virtual text
+
+Rendered rows are virtual lines: they cannot be scrolled, searched or yanked, so a wide ASCII chart or a long result set is cut off at the window edge with nothing to do about it. `pager.lua` copies the cached result into a real scratch buffer:
+
+```lua
+local pager = require("markdown_fence_view.pager")
+pager.open_at_cursor(fv.views(), buf)            -- float, sized to content
+pager.open_at_cursor(fv.views(), buf, "tab")     -- full tab page for very wide output
+```
+
+The buffer is `nofile` + `nomodifiable` (it is a viewport onto the cache, not an editor), the window keeps `wrap` off with `sidescroll = 1` so horizontal scrolling moves a column at a time, and `q` / `<esc>` close while `w` toggles wrap. `locate()` picks the view owning the fence under the cursor, falling back to the nearest fence in the buffer, so one binding covers every registered view.
+
 ## Module layout
 
 ```
-init.lua              -- setup{views}, new(spec), handlers(), get(name)
+init.lua              -- setup{views}, new(spec), handlers(), get(name), views()
 blocks.lua            -- gather(buf, lang) via markdown treesitter root
 marks.lua             -- append() with fold-safe close_row + 1 anchor
 exec.lua              -- name-namespaced cache; get / run / run_async / invalidate
@@ -59,6 +71,7 @@ engines.lua           -- bash, stdin_pipe(cmd), build(view_spec) resolver
 gates.lua             -- path_allow_list(key), executable(bin)
 write_invalidate.lua  -- checkbox_lines(key)
 scratch.lua           -- floating scratch buffer + BufWriteCmd sync-back
+pager.lua             -- read-only float/tab over a block's rendered output
 ```
 
 No side effects at require-time. All state (config, cache, autocmds) is per-view or in the shared exec cache; nothing global.
